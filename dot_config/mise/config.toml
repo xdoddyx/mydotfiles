@@ -2,3 +2,6 @@
 bat = "latest"
 chezmoi = "latest"
 kubectl = "latest"
+fzf = "latest"
+lsd = "latest"
+ripgrep = "latest"
