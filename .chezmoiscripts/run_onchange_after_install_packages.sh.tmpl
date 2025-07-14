@@ -1,20 +1,3 @@
-#!/bin/sh
-# {{/*
+#!/bin/bash
 # packages hash: {{ include "dot_config/mise/config.toml" | sha256sum }}
-# chezmoi: exec-once-after
-# */}}
-
-# Exit immediately if a command exits with a non-zero status.
-set -e
-
-# Trust the config file and install all packages defined within it.
-# This script will re-run automatically anytime the config.toml file changes.
-if command -v mise >/dev/null 2>&1; then
-  echo "--- [Chezmoi] Updating mise packages ---"
-  mise trust
-  mise install
-else
-  echo "--- [Chezmoi] mise not found, skipping package installation ---" >&2
-  # Optionally, you could decide to exit with an error here
-  # exit 1
-fi
+$HOME/.local/bin/mise trust $HOME/.config/mise/config.toml && $HOME/.local/bin/mise install
