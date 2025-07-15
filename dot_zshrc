@@ -1,4 +1,4 @@
-export PATH="/home/doddy/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 export MISE_SHELL=zsh
 export __MISE_ORIG_PATH="$PATH"
 
