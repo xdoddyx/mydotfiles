@@ -1,22 +1,89 @@
 #!/bin/bash
 
+# Exit script if a command fails or if it uses an unset variable.
 set -euo pipefail
 
+# --- Detect Operating System ---
+# Find the OS ID from the /etc/os-release file.
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS_ID=$ID
+else
+    echo "Cannot determine OS distribution. Exiting."
+    exit 1
+fi
+
+
+# --- Install Core Dependencies ---
+echo "Installing core dependencies for $OS_ID..."
+if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
+    sudo apt-get update
+    sudo apt-get install -y build-essential locales git curl
+elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" ]]; then
+    # The 'Development Tools' group provides gcc, make, etc.
+    # glibc-langpack-en provides locale support.
+    sudo dnf install -y 'Development Tools' glibc-langpack-en git curl
+else
+    echo "Unsupported distribution: $OS_ID"
+    exit 1
+fi
+
+
+# --- Configure Locale ---
+echo "Configuring locale to en_US.UTF-8..."
+if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
+    # The Debian way of generating locales
+    sudo sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen
+    sudo locale-gen
+    sudo update-locale LANG=en_US.UTF-8
+elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" ]]; then
+    # The Red Hat / systemd way of setting the locale
+    sudo localectl set-locale LANG=en_US.UTF-8
+fi
+
+
+# --- Check for and Install Zsh ---
+if ! command -v zsh &> /dev/null; then
+    echo "Zsh not found. Installing..."
+    if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
+        sudo apt-get install -y zsh
+    elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" ]]; then
+        sudo dnf install -y zsh
+    fi
+else
+    echo "Zsh is already installed."
+fi
+
+
+# --- Set Zsh as the default shell if installed ---
 if command -v zsh >/dev/null; then
-    sudo chsh -s $(command -v zsh) $USER
+    echo "Setting Zsh as default shell..."
+    # 'chsh' may ask for a password to confirm the change.
+    sudo chsh -s "$(command -v zsh)" "$USER"
 fi
 
-if [ ! -d "$HOME/.zsh" ]; then
-  mkdir -p "$HOME/.zsh"
-fi
 
-# Check if pure is already installed
+# --- Configure Zsh prompt (Pure) ---
+echo "Ensuring ~/.zsh directory exists for prompt installation..."
+mkdir -p "$HOME/.zsh"
+
 if [ ! -d "$HOME/.zsh/pure" ]; then
-  git clone https://github.com/sindresorhus/pure.git "$HOME/.zsh/pure"
+    echo "Installing pure prompt..."
+    git clone https://github.com/sindresorhus/pure.git "$HOME/.zsh/pure"
+else
+    echo "Pure prompt already installed."
 fi
 
+
+# --- Install and apply dotfiles with chezmoi ---
 if ! command -v chezmoi >/dev/null; then
-    sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply git@github.com:xdoddyx/mydotfiles.git
+    echo "Installing and initializing chezmoi..."
+    # Using the HTTPS URL for better reliability on new systems without SSH keys.
+    sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply https://github.com/xdoddyx/mydotfiles.git
+else
+    echo "Chezmoi is already installed."
 fi
 
+
+echo "Setup script completed successfully!"
 exit 0
