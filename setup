@@ -13,24 +13,22 @@ else
     exit 1
 fi
 
-
 # --- Install Core Dependencies ---
 echo "Installing core dependencies for $OS_ID..."
 if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
     sudo apt-get update
-    sudo apt-get install -y build-essential locales git curl
+    # locales provides locale support.
+    # git, curl, and zsh are for the shell setup.
+    sudo apt-get install -y locales git curl zsh
 elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" || "$OS_ID" == "almalinux" ]]; then
-    # On RHEL-based systems, "Development Tools" is a group, not a package.
-    # It must be installed with 'groupinstall'.
-    echo "Installing Development Tools group..."
-    sudo dnf groupinstall -y "Development Tools"
-    echo "Installing individual packages..."
-    sudo dnf install -y glibc-langpack-en git curl
+    # glibc-langpack-en provides locale support.
+    # util-linux-user provides the 'chsh' command.
+    # git, curl, and zsh are for the shell setup.
+    sudo dnf install -y glibc-langpack-en git curl util-linux-user zsh
 else
     echo "Unsupported distribution: $OS_ID"
     exit 1
 fi
-
 
 # --- Configure Locale ---
 echo "Configuring locale to en_US.UTF-8..."
@@ -44,27 +42,16 @@ elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" || "$
     sudo localectl set-locale LANG=en_US.UTF-8
 fi
 
-
-# --- Check for and Install Zsh ---
-if ! command -v zsh &> /dev/null; then
-    echo "Zsh not found. Installing..."
-    if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
-        sudo apt-get install -y zsh
-    elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" || "$OS_ID" == "almalinux" ]]; then
-        sudo dnf install -y zsh
-    fi
-else
-    echo "Zsh is already installed."
-fi
-
-
-# --- Set Zsh as the default shell if installed ---
+# --- Set Zsh as the default shell ---
 if command -v zsh >/dev/null; then
     echo "Setting Zsh as default shell..."
     # 'chsh' may ask for a password to confirm the change.
+    # This requires the 'util-linux-user' package on RHEL-based systems.
     sudo chsh -s "$(command -v zsh)" "$USER"
+else
+    echo "Zsh was not found, cannot set it as the default shell."
+    exit 1
 fi
-
 
 # --- Configure Zsh prompt (Pure) ---
 echo "Ensuring ~/.zsh directory exists for prompt installation..."
@@ -77,7 +64,6 @@ else
     echo "Pure prompt already installed."
 fi
 
-
 # --- Install and apply dotfiles with chezmoi ---
 if ! command -v chezmoi >/dev/null; then
     echo "Installing and initializing chezmoi..."
@@ -87,6 +73,7 @@ else
     echo "Chezmoi is already installed."
 fi
 
-
-echo "Setup script completed successfully!"
+echo ""
+echo "✅ Setup script completed successfully!"
+echo "Log out and log back in for the new shell to take effect."
 exit 0
