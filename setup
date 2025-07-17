@@ -19,10 +19,13 @@ echo "Installing core dependencies for $OS_ID..."
 if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
     sudo apt-get update
     sudo apt-get install -y build-essential locales git curl
-elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" ]]; then
-    # The 'Development Tools' group provides gcc, make, etc.
-    # glibc-langpack-en provides locale support.
-    sudo dnf install -y 'Development Tools' glibc-langpack-en git curl
+elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" || "$OS_ID" == "almalinux" ]]; then
+    # On RHEL-based systems, "Development Tools" is a group, not a package.
+    # It must be installed with 'groupinstall'.
+    echo "Installing Development Tools group..."
+    sudo dnf groupinstall -y "Development Tools"
+    echo "Installing individual packages..."
+    sudo dnf install -y glibc-langpack-en git curl
 else
     echo "Unsupported distribution: $OS_ID"
     exit 1
@@ -36,7 +39,7 @@ if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
     sudo sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen
     sudo locale-gen
     sudo update-locale LANG=en_US.UTF-8
-elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" ]]; then
+elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" || "$OS_ID" == "almalinux" ]]; then
     # The Red Hat / systemd way of setting the locale
     sudo localectl set-locale LANG=en_US.UTF-8
 fi
@@ -47,7 +50,7 @@ if ! command -v zsh &> /dev/null; then
     echo "Zsh not found. Installing..."
     if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
         sudo apt-get install -y zsh
-    elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" ]]; then
+    elif [[ "$OS_ID" == "rhel" || "$OS_ID" == "centos" || "$OS_ID" == "fedora" || "$OS_ID" == "almalinux" ]]; then
         sudo dnf install -y zsh
     fi
 else
